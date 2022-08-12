@@ -1,11 +1,14 @@
-package pubsub
+package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"math/rand"
+	"os"
+	"time"
 
 	"cloud.google.com/go/pubsub"
 )
@@ -20,6 +23,7 @@ func generateMessage() *message {
 	maxTemp := float32(35)
 	minHumidity := float32(85)
 	maxHumidity := float32(99)
+	rand.Seed(time.Now().UnixNano())
 
 	msg := message{
 		minTemp + rand.Float32()*(maxTemp-minTemp),
@@ -57,7 +61,22 @@ func Publish(w io.Writer, projectID, topicID string) error {
 		return fmt.Errorf("get: %v", err)
 	}
 
-	fmt.Fprintf(w, "Published a message; msg ID: %v\n", id)
+	fmt.Fprintf(os.Stdout, "[%s] Sent message: %s, message ID: %s\n",
+		time.Now().Format("01-02-2006 15:04:05"), string(msg), id)
 
 	return nil
+}
+
+func main() {
+	projectID := "marifw-data-pipelines"
+	topicID := "hello-topic"
+
+	buf := new(bytes.Buffer)
+
+	for {
+		if err := Publish(buf, projectID, topicID); err != nil {
+			fmt.Println(err)
+		}
+		time.Sleep(5 * time.Second)
+	}
 }
